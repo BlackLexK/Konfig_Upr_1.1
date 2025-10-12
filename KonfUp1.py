@@ -1,6 +1,7 @@
 import os
 import platform
 import shlex
+import sys
 
 class Shell:
     def ls(self, args):
@@ -16,60 +17,68 @@ def main():
     commands = {"ls": shell.ls, "cd": shell.cd, "exit": None}
 
     vfs_name = "VFS"  # имя виртуальной FS для приглашения
-
-    while True:
-        # формируем приглашение
-        try:
-            user = os.getlogin()
-        except Exception:
-            user = "user"
-
-        host = platform.node()
-        prompt = f"{vfs_name}:{user}@{host}$ "
+    
+    if len(sys.argv) == 3:
+        #Режим скрипта
+        vfs_path = sys.argv[1]
+        script_path = sys.argv[2]
+        print(f"[DEBUG] VFS path: {vfs_path}")
+        print(f"[DEBUG] Script path: {script_path}")
 
         try:
-            line = input(prompt).strip()
-        except EOFError:
-            print("\nexit")
-            break
-        except KeyboardInterrupt:
-            print("\nUse 'exit' to quit")
-            continue
+            with open(script_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except FileNotFoundError:
+            print(f"Script not found: {script_path}")
+            return
 
-        if not line:
-            continue
-
-        # разбор аргументов с учётом кавычек
-        try:
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            print(f"{vfs_name}$ {line}")
             tokens = shlex.split(line)
-        except ValueError as e:
-            print(f"Parse error: {e}")
-            continue
-
-        comm, *args = tokens
-
-        # подстановка переменных окружения вида $VAR
-        expanded_args = []
-        for arg in args:
-            if arg.startswith("$"):
-                val = os.getenv(arg[1:])
-                if val is None:
-                    print(f"Variable {arg} not found")
-                    val = ""
-                expanded_args.append(val)
+            comm, *args = tokens
+            if comm not in commands:
+                print(f"Unknown command: {comm}")
+                break
+            if comm == "exit":
+                print("Bye!")
+                break
             else:
-                expanded_args.append(arg)
+                commands[comm](args)
 
-        # обработка команд
-        if comm not in commands:
-            print(f"Unknown command: {comm}")
-            continue
+    else:
+        # Этап 1
+        while True:
+            try:
+                user = os.getlogin()
+            except Exception:
+                user = "user"
+            host = platform.node()
+            prompt = f"{vfs_name}:{user}@{host}$ "
 
-        if comm == "exit":
-            print("Bye!")
-            break
-        else:
-            commands[comm](expanded_args)
+            try:
+                line = input(prompt).strip()
+            except EOFError:
+                print("\nexit")
+                break
+            except KeyboardInterrupt:
+                print("\nUse 'exit' to quit")
+                continue
+
+            if not line:
+                continue
+            tokens = shlex.split(line)
+            comm, *args = tokens
+            if comm not in commands:
+                print(f"Unknown command: {comm}")
+                continue
+            if comm == "exit":
+                print("Bye!")
+                break
+            else:
+                commands[comm](args)
 
 if __name__ == "__main__":
     main()
