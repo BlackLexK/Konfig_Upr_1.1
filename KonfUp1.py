@@ -19,7 +19,7 @@ def main():
     vfs_name = "VFS"  # имя виртуальной FS для приглашения
     
     if len(sys.argv) == 3:
-        # === Режим скрипта ===
+        #Режим скрипта
         vfs_path = sys.argv[1]
         script_path = sys.argv[2]
         print(f"[DEBUG] VFS path: {vfs_path}")
@@ -49,7 +49,7 @@ def main():
                 commands[comm](args)
 
     else:
-        # === Режим REPL (Этап 1) ===
+        # Этап 1
         while True:
             try:
                 user = os.getlogin()
@@ -82,3 +82,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
