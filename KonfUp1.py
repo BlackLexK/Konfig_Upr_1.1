@@ -5,21 +5,51 @@ import sys
 
 class Shell:
     def ls(self, args):
-        # Заглушка для команды ls
         print(f"ls called with args: {args}")
 
     def cd(self, args):
-        # Заглушка для команды cd
         print(f"cd called with args: {args}")
 
 def main():
     shell = Shell()
     commands = {"ls": shell.ls, "cd": shell.cd, "exit": None}
-
     vfs_name = "VFS"  # имя виртуальной FS для приглашения
-    
+
+    def interactive_mode():
+        """Интерактивный режим — ввод команд вручную"""
+        while True:
+            try:
+                user = os.getlogin()
+            except Exception:
+                user = "user"
+            host = platform.node()
+            prompt = f"{vfs_name}:{user}@{host}$ "
+
+            try:
+                line = input(prompt).strip()
+            except EOFError:
+                print("\nexit")
+                break
+            except KeyboardInterrupt:
+                print("\nUse 'exit' to quit")
+                continue
+
+            if not line:
+                continue
+
+            tokens = shlex.split(line)
+            comm, *args = tokens
+            if comm not in commands:
+                print(f"Unknown command: {comm}")
+                continue
+            if comm == "exit":
+                print("Bye!")
+                break
+            else:
+                commands[comm](args)
+
     if len(sys.argv) == 3:
-        #Режим скрипта
+        # Режим запуска со скриптом
         vfs_path = sys.argv[1]
         script_path = sys.argv[2]
         print(f"[DEBUG] VFS path: {vfs_path}")
@@ -41,45 +71,21 @@ def main():
             comm, *args = tokens
             if comm not in commands:
                 print(f"Unknown command: {comm}")
-                break
+                # не завершаем работу, просто продолжаем
+                continue
             if comm == "exit":
                 print("Bye!")
-                break
+                return
             else:
                 commands[comm](args)
+
+        # после выполнения скрипта — переходим в обычный режим
+        print("\n[INFO] Скрипт завершён. Переход в обычный режим\n")
+        interactive_mode()
 
     else:
         # Этап 1
-        while True:
-            try:
-                user = os.getlogin()
-            except Exception:
-                user = "user"
-            host = platform.node()
-            prompt = f"{vfs_name}:{user}@{host}$ "
-
-            try:
-                line = input(prompt).strip()
-            except EOFError:
-                print("\nexit")
-                break
-            except KeyboardInterrupt:
-                print("\nUse 'exit' to quit")
-                continue
-
-            if not line:
-                continue
-            tokens = shlex.split(line)
-            comm, *args = tokens
-            if comm not in commands:
-                print(f"Unknown command: {comm}")
-                continue
-            if comm == "exit":
-                print("Bye!")
-                break
-            else:
-                commands[comm](args)
+        interactive_mode()
 
 if __name__ == "__main__":
     main()
-
